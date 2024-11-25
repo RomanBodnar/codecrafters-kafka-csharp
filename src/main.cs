@@ -11,6 +11,7 @@ using var socket = server.AcceptSocket(); // wait for client
 
 var read_buffer = new Span<byte>(new byte[1024]);
 var bytesRead = socket.Receive(read_buffer);
+
 // first I'll use a list which will be converted to an array
 // todo: use a struct
 
