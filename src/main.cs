@@ -17,6 +17,7 @@ var bytesRead = socket.Receive(read_buffer);
 
 int messageSize = sizeof(int) * 2;
 int correlationId = 7;
+
 var message = new List<int> {
     messageSize,
     correlationId
