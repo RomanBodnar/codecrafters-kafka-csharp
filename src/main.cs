@@ -9,7 +9,8 @@ TcpListener server = new TcpListener(IPAddress.Any, 9092);
 server.Start();
 using var socket = server.AcceptSocket(); // wait for client
 
-
+var read_buffer = new Span<byte>(new byte[1024]);
+var bytesRead = socket.Receive(read_buffer);
 // first I'll use a list which will be converted to an array
 // todo: use a struct
 int messageSize = sizeof(int) * 2;
@@ -23,7 +24,7 @@ var messageArr = message.ToArray();
 byte[] buffer = new byte[messageArr.Length * sizeof(int)];
 Buffer.BlockCopy(messageArr, 0, buffer, 0, buffer.Length);
 
-await socket.SendAsync(buffer, 0);
+socket.Send(buffer, 0);
 
 public struct Message {
     public int MessageSize;
