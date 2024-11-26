@@ -13,23 +13,13 @@ using var socket = server.AcceptSocket(); // wait for client
 
 var read_buffer = new Span<byte>(new byte[Marshal.SizeOf<Message>()]);
 var bytesRead = socket.Receive(read_buffer);
+var receivedMessage = Message.FromSpan(read_buffer);
 
-var receivedMessage = Message.FromArray(read_buffer.ToArray());
+Message message = new();
+message.MessageSize = sizeof(int) * 2;
+message.HeaderV0.CorrelationId = receivedMessage.HeaderV0.CorrelationId;
 
-// first I'll use a list which will be converted to an array
-// todo: use a struct
-var stream = new MemoryStream();
-var writer = new BinaryWriter(stream);
-
-//stream.ToArray();
-int messageSize = sizeof(int) * 2;
-int correlationId = 7;
-
-byte[] buffer = new byte[Marshal.SizeOf<Message>()];
-var span = new Span<byte>(buffer);
-BinaryPrimitives.WriteInt32BigEndian(span[..4], messageSize);
-BinaryPrimitives.WriteInt32BigEndian(span[4..8], correlationId);
-
+byte[] buffer = message.ToArray();
 
 socket.Send(buffer, 0);
 
@@ -39,21 +29,23 @@ public struct Message {
 
     public byte[] ToArray()
     {
-        throw new NotImplementedException();
+        var bytes = new byte[Marshal.SizeOf<Message>()];
+        var span = new Span<byte>(bytes);
+        BinaryPrimitives.WriteInt32BigEndian(span[..4], this.MessageSize);
+        BinaryPrimitives.WriteInt32BigEndian(span[4..8], HeaderV0.CorrelationId);
+        return bytes;
     }
 
-// todo: add FromSpan method
-    public static Message FromArray(byte[] bytes)
+    public static Message FromSpan(Span<byte> bytes)
     {
-        var reader = new BinaryReader(new MemoryStream(bytes));
         var s = default(Message);
-        s.MessageSize = reader.ReadInt32();
+        s.MessageSize = BinaryPrimitives.ReadInt32BigEndian(bytes[..4]);
         s.HeaderV0 = default;
-        s.HeaderV0.RequestApiKey = reader.ReadInt16();
-        s.HeaderV0.RequestApiVersion = reader.ReadInt16();
-        s.HeaderV0.CorrelationId = reader.ReadInt32();
+        s.HeaderV0.RequestApiKey = BinaryPrimitives.ReadInt16BigEndian(bytes[4..6]);
+        s.HeaderV0.RequestApiVersion = BinaryPrimitives.ReadInt16BigEndian(bytes[6..8]);
+        s.HeaderV0.CorrelationId = BinaryPrimitives.ReadInt32BigEndian(bytes[8..12]);
         return s;
-    }
+    } 
 }
 
 public struct RequestHeader {
