@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 
@@ -25,7 +26,11 @@ var message = new List<int> {
 
 var messageArr = message.ToArray();
 byte[] buffer = new byte[messageArr.Length * sizeof(int)];
-Buffer.BlockCopy(messageArr, 0, buffer, 0, buffer.Length);
+//Buffer.BlockCopy(messageArr, 0, buffer, 0, buffer.Length);
+var span = new Span<byte>(buffer);
+BinaryPrimitives.WriteInt32BigEndian(span[..4], messageSize);
+BinaryPrimitives.WriteInt32BigEndian(span[4..8], correlationId);
+
 
 socket.Send(buffer, 0);
 
