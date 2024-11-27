@@ -16,7 +16,7 @@ var read_buffer = new Span<byte>(new byte[Marshal.SizeOf<RequestMessage>()]);
 var bytesRead = socket.Receive(read_buffer);
 var receivedMessage = RequestMessage.FromSpan(read_buffer);
 
-ResponseMessage message = new();
+ApiVersionResponse message = new();
 message.MessageSize = 0;
 message.HeaderV0.CorrelationId = receivedMessage.HeaderV0.CorrelationId;
 
@@ -30,3 +30,5 @@ byte[] buffer = message.ToArray();
 
 socket.Send(buffer, 0);
 
+
+socket.Close();
