@@ -39,12 +39,10 @@ public record struct ApiVersionResponse
         BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], ErrorCode);
         offset += sizeof(short);
 
-
-
         var apiKeysSize = ApiKeys.WriteToSpan(out var apiKeysSpan);
         var newBytes = span[..offset].ToArray().Concat(apiKeysSpan.ToArray()).ToArray();
         var newSpan = new Span<byte>(newBytes);
-        
+
         offset += apiKeysSize;
 
         // overwrite first 4 bytes with an actual size of a message
@@ -52,11 +50,12 @@ public record struct ApiVersionResponse
         BinaryPrimitives.WriteInt32BigEndian(newSpan[..4], MessageSize);
 
         Console.WriteLine($"Final offset: {offset}");
-        foreach(var b in newBytes){
+        foreach(var b in newBytes)
+        {
             Console.WriteLine(b);
         }
 
-        return span.ToArray();
+        return newSpan.ToArray();
     }
 }
 
@@ -77,7 +76,7 @@ public record struct ApiKeys {
 
     public int WriteToSpan(out Span<byte> span) {
         int offset = 0;
-        var bytes = new byte[sizeof(int)*2 + sizeof(byte) + Length * Marshal.SizeOf<ApiVersion>()];
+        var bytes = new byte[sizeof(int)*2 + sizeof(byte)/*tag_buffer*/ + Length * Marshal.SizeOf<ApiVersion>() + Length /*temp solution for tag_buffers*/];
         span = new Span<byte>(bytes);
 
         BinaryPrimitives.WriteInt32BigEndian(span, Length);
@@ -108,6 +107,8 @@ public record struct ApiVersion(short ApiKey, short MinVersion, short MaxVersion
         offset += sizeof(short);
         BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], MaxVersion);
         offset += sizeof(short);
+
+        offset += 1; // tag buffer
 
         return offset;
     }
