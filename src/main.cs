@@ -13,9 +13,10 @@ while (true)
 {
     using var socket = server.AcceptSocket(); // wait for client
 
-    var read_buffer = new Span<byte>(new byte[Marshal.SizeOf<RequestMessage>()]);
+    var read_buffer = new byte[1024];
     var bytesRead = socket.Receive(read_buffer);
-    var receivedMessage = RequestMessage.FromSpan(read_buffer);
+    Console.WriteLine($"Read {bytesRead} bytes");
+    var receivedMessage = RequestMessage.FromSpan(new ArraySegment<byte>(read_buffer, 0, bytesRead));
 
     ApiVersionResponse message = new();
     message.MessageSize = 0;
@@ -41,3 +42,5 @@ while (true)
 }
 
 //socket.Close();
+
+server.Stop();
