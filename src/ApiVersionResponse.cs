@@ -17,6 +17,34 @@ public record struct ApiVersionResponse
 		ApiKeys = new();
 	}
 
+    public byte[] ToByteArray()
+    {
+        using var stream = new MemoryStream();
+        MessageSize = 19;
+        stream.Put(MessageSize);
+
+        Console.WriteLine($"HEADER: {Marshal.SizeOf<ResponseHeader>()}");
+        stream.Put(HeaderV0.CorrelationId); 
+        stream.Put(ErrorCode); 
+        if (ApiKeys.Length > 0)
+        {
+            stream.Put((byte)(ApiKeys.Length + 1));
+            foreach (var key in ApiKeys.Versions)
+            {
+                stream.Put(key.ApiKey); 
+                stream.Put(key.MinVersion);
+                stream.Put(key.MaxVersion); 
+                stream.Put((byte)0); 
+            }
+        }
+        else {
+            stream.Put((byte)(ApiKeys.Length + 1));
+        }
+
+        stream.Put(ApiKeys.ThrottleTimeMs);
+        stream.Put((byte)0);
+        return stream.ToArray();
+    }
     public byte[] ToArray()
     {
         var bytes = new byte[1024];

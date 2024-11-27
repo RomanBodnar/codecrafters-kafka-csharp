@@ -8,6 +8,9 @@ using codecrafters;
 Console.WriteLine("Logs from your program will appear here!");
 
 TcpListener server = new TcpListener(IPAddress.Any, 9092);
+
+
+
 server.Start();
 while (true)
 {
@@ -36,9 +39,9 @@ while (true)
         message.ErrorCode = ErrorCodes.NONE;
     }
 
-    var buffer = message.ToArray();
+    var buffer = message.ToByteArray();
 
-    socket.Send(buffer, 0);
+    socket.Send(buffer, SocketFlags.None);
 }
 
 //socket.Close();
