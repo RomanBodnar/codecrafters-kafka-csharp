@@ -1,10 +1,11 @@
 using System;
 using System.Buffers.Binary;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace codecrafters;
 
-public struct ApiVersionResponse
+public record struct ApiVersionResponse
 {
     public ApiVersionResponse() {
         HeaderV0 = new();
@@ -21,7 +22,9 @@ public struct ApiVersionResponse
     public byte[] ToArray()
     {
         var bytes = new byte[Marshal.SizeOf<ApiVersionResponse>()];
+       
         Console.WriteLine($"Allocated array length: {bytes.Length}");
+        
         var span = new Span<byte>(bytes);
         int offset = 0;
 
@@ -36,53 +39,74 @@ public struct ApiVersionResponse
         BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], ErrorCode);
         offset += sizeof(short);
 
-        var apiKeysSize = ApiKeys.WriteToSpan(span[offset..(offset + 4)]);
+
+
+        var apiKeysSize = ApiKeys.WriteToSpan(out var apiKeysSpan);
+        var newBytes = span[..offset].ToArray().Concat(apiKeysSpan.ToArray()).ToArray();
+        var newSpan = new Span<byte>(newBytes);
+        
         offset += apiKeysSize;
 
         // overwrite first 4 bytes with an actual size of a message
         MessageSize = offset;
-        BinaryPrimitives.WriteInt32BigEndian(span[..4], MessageSize);
+        BinaryPrimitives.WriteInt32BigEndian(newSpan[..4], MessageSize);
 
         Console.WriteLine($"Final offset: {offset}");
         foreach(var b in bytes[..offset]){
             Console.WriteLine(b);
         }
 
-        return span[..offset].ToArray();
+        return span.ToArray();
     }
 }
 
-public struct ApiKeys {
-    public ApiKeys() {
-        ApiKey = 18;
-        MinVersion = 0;
-        MaxVersion = 4;
+public record struct ApiKeys {
+
+    public int Length;
+    public ApiVersion[] Versions;
+    public int ThrottleTimeMs;
+    // TAG_BUFFER
+
+    public ApiKeys()
+    {
+        Length = 1;
+        Versions = new ApiVersion[Length];
+        Versions[0] = new ApiVersion(18, 0, 4);
+        ThrottleTimeMs = 0;
     }
 
-    public short ApiKey;
-    public short MinVersion;
-    public short MaxVersion;
+    public int WriteToSpan(out Span<byte> span) {
+        int offset = 0;
+        var bytes = new byte[sizeof(int)*2 + sizeof(byte) + Length * Marshal.SizeOf<ApiVersion>()];
+        span = new Span<byte>(bytes);
 
-    public int WriteToSpan(Span<byte> span) {
-        int written = 0;
-        // write lenght of an array
-        BinaryPrimitives.WriteInt16BigEndian(span[0..2], 1);
-        written += sizeof(short);
+        BinaryPrimitives.WriteInt32BigEndian(span, Length);
+        offset += sizeof(int);
 
-        BinaryPrimitives.WriteInt16BigEndian(span[2..4], ApiKey);
-        written += sizeof(short);
-       
-        BinaryPrimitives.WriteInt16BigEndian(span[4..6], MaxVersion);
-        written += sizeof(short);
-        
+        foreach (var version in Versions) {
+            int written = version.ToSpan(span);
+            offset += written;
+        }
 
-        //stream.Put(0).Put((byte)0); // throttle time ms + TAG BUFFER of the api-keys body
+        BinaryPrimitives.WriteInt32BigEndian(span[offset..], ThrottleTimeMs);
+        // tag_buffer must be 0
         
-        BinaryPrimitives.WriteInt32BigEndian(span[6..10], 0);
-        
-        BinaryPrimitives.WriteInt32BigEndian(span[10..14], 0);
-        written += sizeof(int) + sizeof(int);
-        
-        return written;
+        return offset;
+    }
+}
+
+public record struct ApiVersion(short ApiKey, short MinVersion, short MaxVersion) 
+{
+    public int ToSpan(Span<byte> span) {
+        var offset = 0;
+
+        BinaryPrimitives.WriteInt16BigEndian(span[offset..2], ApiKey);
+        offset += sizeof(short);
+        BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], ApiKey);
+        offset += sizeof(short);
+        BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], ApiKey);
+        offset += sizeof(short);
+
+        return offset;
     }
 }
