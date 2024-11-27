@@ -13,6 +13,7 @@ public struct RequestMessage {
     {
         var s = default(RequestMessage);
         s.MessageSize = BinaryPrimitives.ReadInt32BigEndian(bytes[..4]);
+
         s.HeaderV0 = default;
         s.HeaderV0.RequestApiKey = BinaryPrimitives.ReadInt16BigEndian(bytes[4..6]);
         s.HeaderV0.RequestApiVersion = BinaryPrimitives.ReadInt16BigEndian(bytes[6..8]);
