@@ -4,6 +4,19 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using codecrafters;
 
+
+
+ApiVersionResponse message1 = new();
+message1.MessageSize = 0;
+message1.HeaderV0.CorrelationId = 156684;
+
+message1.ErrorCode = ErrorCodes.NONE;
+
+byte[] buffer1 = message1.ToArray();
+
+
+
+return;
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 Console.WriteLine("Logs from your program will appear here!");
 

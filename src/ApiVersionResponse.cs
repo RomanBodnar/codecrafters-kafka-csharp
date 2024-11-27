@@ -52,7 +52,7 @@ public record struct ApiVersionResponse
         BinaryPrimitives.WriteInt32BigEndian(newSpan[..4], MessageSize);
 
         Console.WriteLine($"Final offset: {offset}");
-        foreach(var b in bytes[..offset]){
+        foreach(var b in newBytes){
             Console.WriteLine(b);
         }
 
@@ -84,13 +84,15 @@ public record struct ApiKeys {
         offset += sizeof(int);
 
         foreach (var version in Versions) {
-            int written = version.ToSpan(span);
+            int written = version.ToSpan(span[offset..]);
             offset += written;
         }
 
         BinaryPrimitives.WriteInt32BigEndian(span[offset..], ThrottleTimeMs);
-        // tag_buffer must be 0
-        
+        offset += sizeof(int);
+        offset += 1;// tag_buffer must be 0
+
+
         return offset;
     }
 }
@@ -102,9 +104,9 @@ public record struct ApiVersion(short ApiKey, short MinVersion, short MaxVersion
 
         BinaryPrimitives.WriteInt16BigEndian(span[offset..2], ApiKey);
         offset += sizeof(short);
-        BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], ApiKey);
+        BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], MinVersion);
         offset += sizeof(short);
-        BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], ApiKey);
+        BinaryPrimitives.WriteInt16BigEndian(span[offset..(offset + 2)], MaxVersion);
         offset += sizeof(short);
 
         return offset;
